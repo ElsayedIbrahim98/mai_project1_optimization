@@ -170,12 +170,13 @@ class Trainer(nn.Module):
         super().load_state_dict(state_dict, strict, assign)
 
 
+import pandas as pd
 import time
 import torch
 from statistics import mean, stdev
 
 class MetricsTrainer(Trainer):
-    def train_with_metrics(self, dataloader, epochs=1):
+    def train_with_metrics(self, dataloader, epochs=1, output_csv="metrics.csv", technique="Unknown", experiment_name=""):
         self.model.to(self.device)
         self.model.train()
 
@@ -209,9 +210,29 @@ class MetricsTrainer(Trainer):
         total_training_time = sum(epoch_times)
         throughput = total_samples / total_training_time if total_training_time > 0 else 0
 
-        print(f"📊 Metrics Summary:")
-        print(f"Total Samples Trained: {total_samples}")
-        print(f"Total Training Time (s): {total_training_time:.2f}")
-        print(f"Throughput (samples/sec): {throughput:.2f}")
-        print(f"Mean Batch Load Time (s): {mean(batch_times):.4f}")
-        print(f"Epoch Time Std Dev (s): {stdev(epoch_times) if len(epoch_times) > 1 else 0:.4f}")
+        # Load previous results
+        try:
+            df_old = pd.read_csv(output_csv)
+        except FileNotFoundError:
+            df_old = pd.DataFrame()
+
+        new_metrics = {
+            "Experiment": experiment_name,
+            "Training Time (s)": round(total_training_time, 2),
+            "Inference Time (s)": None,
+            "Memory Usage (MB)": None,
+            "Accuracy": None,
+            "Precision": None,
+            "Recall": None,
+            "F1 Score": None,
+            "Technique": technique,
+            "Total Samples": total_samples,
+            "Throughput (samples/sec)": round(throughput, 2),
+            "Mean Batch Load Time (s)": round(mean(batch_times), 4),
+            "Epoch Time Std Dev (s)": round(stdev(epoch_times), 4) if len(epoch_times) > 1 else 0.0
+        }
+
+        df_new = pd.DataFrame([new_metrics])
+        df_combined = pd.concat([df_old, df_new], ignore_index=True)
+        df_combined.to_csv(output_csv, index=False)
+        print(f"✅ Appended new metrics to: {output_csv}")
