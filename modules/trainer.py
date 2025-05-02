@@ -168,3 +168,50 @@ class Trainer(nn.Module):
         self.optimizer.load_state_dict(state_dict["optimizer"])
         del state_dict["optimizer"]
         super().load_state_dict(state_dict, strict, assign)
+
+
+import time
+import torch
+from statistics import mean, stdev
+
+class MetricsTrainer(Trainer):
+    def train_with_metrics(self, dataloader, epochs=1):
+        self.model.to(self.device)
+        self.model.train()
+
+        batch_times = []
+        epoch_times = []
+        total_samples = 0
+
+        for epoch in range(epochs):
+            epoch_start = time.time()
+            for batch_idx, (data, targets) in enumerate(dataloader):
+                load_start = time.time()
+
+                data = data.to(self.device, non_blocking=True)
+                targets = targets.to(self.device, non_blocking=True)
+
+                batch_load_time = time.time() - load_start
+                batch_times.append(batch_load_time)
+
+                outputs = self.model(data)
+                loss = self.loss_fn(outputs, targets)
+
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+
+                total_samples += data.size(0)
+
+            epoch_time = time.time() - epoch_start
+            epoch_times.append(epoch_time)
+
+        total_training_time = sum(epoch_times)
+        throughput = total_samples / total_training_time if total_training_time > 0 else 0
+
+        print(f"📊 Metrics Summary:")
+        print(f"Total Samples Trained: {total_samples}")
+        print(f"Total Training Time (s): {total_training_time:.2f}")
+        print(f"Throughput (samples/sec): {throughput:.2f}")
+        print(f"Mean Batch Load Time (s): {mean(batch_times):.4f}")
+        print(f"Epoch Time Std Dev (s): {stdev(epoch_times) if len(epoch_times) > 1 else 0:.4f}")
