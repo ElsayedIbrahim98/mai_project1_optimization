@@ -11,3 +11,4 @@ pandas
 torch_tb_profiler
 tensorflow
 gputil
+nvidia-ml-py3
