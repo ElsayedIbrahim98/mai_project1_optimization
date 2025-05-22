@@ -124,8 +124,7 @@ class Trainer(nn.Module):
             yield model
         
         if args["profiler"]:
-            if self.device.type == "cuda":
-                torch.cuda.synchronize()
+            torch.cuda.synchronize()
             prof.stop()
 
     def _optimizer_to(self, optim: torch.optim.Optimizer, device: torch.device) -> None:
