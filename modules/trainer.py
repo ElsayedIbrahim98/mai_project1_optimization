@@ -120,11 +120,12 @@ class Trainer(nn.Module):
                         loss.backward()
                         self.optimizer.step()
                 if args["profiler"]:
+                    if self.device.type == "cuda":
+                    torch.cuda.synchronize()
                     prof.step()
             yield model
         
         if args["profiler"]:
-            torch.cuda.synchronize()
             prof.stop()
 
     def _optimizer_to(self, optim: torch.optim.Optimizer, device: torch.device) -> None:
