@@ -81,7 +81,7 @@ class Trainer(nn.Module):
             # with_modules=True
             )
             prof.start()
-        
+        torch.cuda.synchronize()
         for epoch in tqdm(range(epochs)):
             model.train()
             for i, (data, target) in enumerate(dataloader):
@@ -120,10 +120,9 @@ class Trainer(nn.Module):
                         loss.backward()
                         self.optimizer.step()
                 if args["profiler"]:
-                    torch.cuda.synchronize()
                     prof.step()
             yield model
-        
+        torch.cuda.synchronize()
         if args["profiler"]:
             prof.stop()
 
